@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Torta na Cara! Treino de Letras",
-  "short_name": "Torta na Cara!",
+  "name": "Alfabetizando",
+  "short_name": "Alfabetizando",
   "description": "Jogo educativo de treino de letras e leitura para crianças, com flashcards, quiz, grade de letras e modo Aprenda.",
   "start_url": "/index.html",
   "scope": "/",

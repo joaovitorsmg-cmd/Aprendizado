@@ -1,4 +1,4 @@
-# Aprendizado — Torta na Cara! Treino de Letras
+# Aprendizado — Alfabetizando
 
 Jogo educativo de treino de letras e leitura para crianças (Flashcards, Quiz,
 Grade de letras e modo Aprenda), com ícone e configuração completa de
