@@ -92,6 +92,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#
 .flash-fb{text-align:center;min-height:2rem;font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
 .flash-fb.ok{color:var(--verde-mid)}.flash-fb.nok{color:var(--vermelho)}
 
+/* MASCOTE (bichinho variado que reage ao acerto/erro) */
+.mascot-emoji{font-size:1.8rem;display:inline-block;vertical-align:middle;margin-right:.35rem;animation:mascotPop .35s ease}
+@keyframes mascotPop{0%{transform:scale(.3) rotate(-10deg);opacity:0}60%{transform:scale(1.2) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+
 /* QUIZ */
 .qword{font-size:min(45vw,160px);font-weight:900;color:var(--azul);text-align:center;background:#fff;border-radius:20px;border:3px solid var(--azul);padding:1.2rem .5rem 1.4rem;margin-bottom:.75rem;line-height:1;cursor:pointer;user-select:none;box-shadow:0 4px 16px rgba(13,71,161,.12);position:relative}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
@@ -222,6 +226,7 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
     <div class="sound-hint" style="position:absolute;bottom:8px;right:12px;top:auto">🔊</div>
   </div>
   <div class="streak" id="streak-msg"></div>
+  <div class="flash-fb" id="qz-fb"></div>
   <div class="opts" id="qz-opts"></div>
 </div>
 
@@ -346,6 +351,24 @@ function currentLearnEntry(){return curLearnData()[st().learnIdx];}
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+// Mascote: em vez de um personagem fixo, um bichinho ALEATÓRIO diferente a
+// cada reação — a variedade em si é o que evita a mesmice do "sempre a
+// mesma mensagem"; some emojis muito recentes ficam de fora da lista para
+// garantir que rendem bem em aparelhos Android mais antigos.
+const ANIMALS=['🐎','🐴','🐰','🐇','🐹','🐤','🦥','🦁','🐯','🐱','🐶','🐺','🐻','🐨','🐼','🐭','🦊','🐮','🐷','🐗','🦄','🐢','🐸','🐍','🐊','🐫','🐪','🦒','🐘','🦏','🦛','🐅','🐆','🦦','🦔','🐔','🐓','🦅','🦉','🦜','🕊️','🦢','🦆','🐧','🦃','🦚','🦩','🐬','🐋','🐳','🐟','🐠','🦀','🐌','🐝','🦋','🐛'];
+const PRAISE_MSGS=['Ótimo!','Isso aí!','Mandou bem!','Uau, acertou!','Muito bem!','Perfeito!','Você é demais!','Arrasou!','Isso mesmo!','Continue assim!'];
+const OOPS_MSGS=['Quase lá!','Vamos tentar de novo!','Essa foi difícil!','Falta pouquinho!','Bora tentar outra vez!','Você consegue!'];
+
+let lastAnimal=null;
+function randomAnimal(){
+  let a=ANIMALS[Math.floor(Math.random()*ANIMALS.length)];
+  while(a===lastAnimal)a=ANIMALS[Math.floor(Math.random()*ANIMALS.length)];
+  lastAnimal=a;
+  return a;
+}
+function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function mascotHTML(msg){return '<span class="mascot-emoji">'+randomAnimal()+'</span>'+msg;}
+
 // Fala o texto exato recebido. Chrome no Android às vezes ignora um speak()
 // chamado no mesmo tick de um cancel() (e também exige resume() se a síntese
 // travou "pausada" depois que o app volta de segundo plano) — por isso o
@@ -451,12 +474,12 @@ function showFlash(){
 function flashResult(ok){
   const s=st();
   const fb=document.getElementById('fl-fb');
-  if(ok){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;fb.textContent='⭐ Ótimo!';fb.className='flash-fb ok';}
-  else{misses++;streakCur=0;fb.textContent='💪 Vamos praticar!';fb.className='flash-fb nok';}
+  if(ok){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;fb.innerHTML=mascotHTML(randomFrom(PRAISE_MSGS));fb.className='flash-fb ok';}
+  else{misses++;streakCur=0;fb.innerHTML=mascotHTML(randomFrom(OOPS_MSGS));fb.className='flash-fb nok';}
   s.flashIdx++;
   if(s.flashIdx>=s.flashOrder.length){
     s.flashIdx=0;roundNum++;shuffle(s.flashOrder);
-    fb.textContent='🎉 Rodada completa!';fb.className='flash-fb ok';
+    fb.innerHTML=mascotHTML('Rodada completa! 🎉');fb.className='flash-fb ok';
     confetti();
   }
   upd();
@@ -471,6 +494,7 @@ function initQuiz(){
   s.qzOrder=shuffle([...items()]);
   s.qzIdx=0;
   document.getElementById('qz-question').textContent=MODES[MODE].questionText;
+  document.getElementById('qz-fb').textContent='';
   nextQuiz();
 }
 
@@ -499,8 +523,9 @@ function answerQuiz(chosen,correct){
     if(b.textContent===correct)b.classList.add('correct');
     else if(b.textContent===chosen&&chosen!==correct)b.classList.add('wrong');
   });
-  if(chosen===correct){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;}
-  else{misses++;streakCur=0;}
+  const fb=document.getElementById('qz-fb');
+  if(chosen===correct){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;fb.innerHTML=mascotHTML(randomFrom(PRAISE_MSGS));fb.className='flash-fb ok';}
+  else{misses++;streakCur=0;fb.innerHTML=mascotHTML(randomFrom(OOPS_MSGS));fb.className='flash-fb nok';}
   upd();
   setTimeout(()=>{
     const s=st();
