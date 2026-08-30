@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Treino de Letras – Torta na Cara!</title>
+<style>
+:root{
+  --azul:#0D47A1;--azul-claro:#1565C0;--azul-bg:#E3F2FD;
+  --verde:#1B5E20;--verde-bg:#E8F5E9;--verde-mid:#2E7D32;
+  --vermelho:#B71C1C;--vermelho-bg:#FFEBEE;
+  --amarelo:#F57F17;--amarelo-bg:#FFF8E1;
+  --cinza:#F5F5F5;--cinza2:#E0E0E0;--cinza3:#9E9E9E;
+  --texto:#212121;--texto2:#555;
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#E3F2FD 0%,#BBDEFB 100%);min-height:100vh;padding:0 0 2rem}
+
+/* HEADER */
+.header{background:var(--azul);color:#fff;text-align:center;padding:1rem 1rem .8rem;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.header h1{font-size:1.5rem;font-weight:800;letter-spacing:-.01em}
+.header p{font-size:.85rem;opacity:.85;margin-top:.15rem}
+.pie{font-size:1.8rem}
+
+/* TABS */
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--cinza2);position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tab{flex:1;padding:.75rem .3rem;text-align:center;font-size:.8rem;font-weight:700;color:var(--cinza3);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;user-select:none}
+.tab.active{color:var(--azul);border-bottom-color:var(--azul)}
+.tab-icon{font-size:1.3rem;display:block;margin-bottom:2px}
+
+/* SCORE */
+.score-row{display:flex;gap:8px;padding:.75rem 1rem;justify-content:center}
+.sc{background:#fff;border-radius:12px;padding:.5rem 0;text-align:center;flex:1;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+.sc-label{font-size:10px;color:var(--cinza3);text-transform:uppercase;letter-spacing:.05em}
+.sc-num{font-size:1.6rem;font-weight:800}
+.sc-num.g{color:var(--verde-mid)}.sc-num.r{color:var(--vermelho)}.sc-num.b{color:var(--azul)}
+.btn-zerar{display:block;margin:.1rem auto .75rem;padding:.4rem 1.2rem;background:transparent;border:1.5px solid #ccc;border-radius:20px;color:var(--cinza3);font-size:.78rem;cursor:pointer}
+.btn-zerar:hover{border-color:var(--vermelho);color:var(--vermelho)}
+
+/* PAINEIS */
+.panel{display:none;padding:0 1rem 1rem;animation:fadeIn .2s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* PROGRESS BAR */
+.prog{height:8px;background:var(--cinza2);border-radius:4px;margin:.5rem 0 1rem;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--azul-claro),var(--azul));border-radius:4px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+
+/* LETTER BOX */
+.letter-box{background:#fff;border-radius:20px;border:3px solid var(--azul);text-align:center;padding:1rem .5rem 1.2rem;margin-bottom:.75rem;box-shadow:0 4px 16px rgba(13,71,161,.12);position:relative;cursor:pointer;user-select:none;transition:transform .1s}
+.letter-box:active{transform:scale(.98)}
+.sound-hint{position:absolute;top:10px;right:14px;font-size:.75rem;color:var(--cinza3);display:flex;align-items:center;gap:4px}
+.big{font-size:min(48vw,200px);font-weight:900;color:var(--azul);line-height:1;transition:transform .15s}
+.big.pop{animation:pop .25s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+.letter-counter{font-size:.85rem;color:var(--cinza3);margin-top:.4rem}
+
+/* FLASH BTNS */
+.flash-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
+.fbtn{padding:.9rem;border-radius:var(--radius-sm);font-size:1rem;font-weight:700;cursor:pointer;border:none;transition:transform .1s,box-shadow .1s}
+.fbtn:active{transform:scale(.97)}
+.fbtn.ok{background:var(--verde-mid);color:#fff;box-shadow:0 3px 8px rgba(46,125,50,.3)}
+.fbtn.nok{background:var(--cinza2);color:var(--texto2)}
+.fbtn.shuffle{grid-column:1/-1;background:#fff;border:2px solid var(--azul);color:var(--azul)}
+
+/* FEEDBACK FLASH */
+.flash-fb{text-align:center;min-height:2rem;font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
+.flash-fb.ok{color:var(--verde-mid)}.flash-fb.nok{color:var(--vermelho)}
+
+/* QUIZ */
+.qword{font-size:min(45vw,160px);font-weight:900;color:var(--azul);text-align:center;background:#fff;border-radius:20px;border:3px solid var(--azul);padding:1.2rem .5rem 1.4rem;margin-bottom:.75rem;line-height:1;cursor:pointer;user-select:none;box-shadow:0 4px 16px rgba(13,71,161,.12);position:relative}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
+.opt{padding:1rem;font-size:min(16vw,72px);font-weight:900;text-align:center;border-radius:12px;border:2.5px solid var(--cinza2);background:#fff;cursor:pointer;transition:.15s;line-height:1;user-select:none}
+.opt:active{transform:scale(.96)}
+.opt.correct{background:var(--verde-bg);border-color:var(--verde-mid);color:var(--verde-mid)}
+.opt.wrong{background:var(--vermelho-bg);border-color:var(--vermelho);color:var(--vermelho)}
+.opt.disabled{pointer-events:none}
+.qi{text-align:center;color:var(--texto2);font-size:.9rem;margin-bottom:.6rem}
+.streak{text-align:center;font-size:.85rem;color:var(--amarelo);font-weight:700;min-height:1.2rem}
+
+/* GRADE */
+.grid-header{text-align:center;color:var(--texto2);font-size:.88rem;margin-bottom:.75rem;padding:.6rem;background:#fff;border-radius:10px}
+.lg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem}
+.gi{padding:.6rem .2rem;font-size:min(13vw,56px);font-weight:900;text-align:center;border-radius:12px;border:2.5px solid var(--cinza2);background:#fff;cursor:pointer;color:var(--azul);transition:.15s;user-select:none;position:relative}
+.gi:active{transform:scale(.94)}
+.gi.done{background:var(--verde-bg);border-color:var(--verde-mid);color:var(--verde-mid)}
+.gi.done::after{content:'✓';position:absolute;top:2px;right:5px;font-size:.6rem;color:var(--verde-mid)}
+.gi-label{font-size:.6rem;color:var(--cinza3);margin-top:2px}
+.gi.done .gi-label{color:var(--verde-mid)}
+
+/* APRENDA */
+.palavra-card{background:#fff;border-radius:16px;border:2.5px solid var(--azul);padding:1rem;margin-bottom:.75rem;box-shadow:0 4px 12px rgba(13,71,161,.1)}
+.palavra-letra{font-size:min(28vw,120px);font-weight:900;color:var(--azul);text-align:center;line-height:1;cursor:pointer;user-select:none}
+.palavra-exemplo{text-align:center;margin-top:.5rem}
+.palavra-exemplo .pw{font-size:1.5rem;font-weight:800;color:var(--texto)}
+.palavra-exemplo .pw span{color:var(--azul)}
+.palavra-exemplo .desc{font-size:.85rem;color:var(--cinza3);margin-top:.15rem}
+.nav-btns{display:flex;gap:10px;margin-bottom:.75rem}
+.nav-btn{flex:1;padding:.8rem;border-radius:var(--radius-sm);background:#fff;border:2px solid var(--azul);color:var(--azul);font-size:1rem;font-weight:700;cursor:pointer}
+.nav-btn:active{transform:scale(.97)}
+.learn-prog{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:.75rem}
+.lp-dot{width:10px;height:10px;border-radius:50%;background:var(--cinza2);cursor:pointer;transition:.15s}
+.lp-dot.seen{background:var(--azul-claro)}
+.lp-dot.current{background:var(--azul);transform:scale(1.3)}
+
+/* MEDALHAS */
+.badges-section{margin-top:.5rem}
+.badges-title{font-size:.85rem;font-weight:700;color:var(--texto2);margin-bottom:.5rem;text-align:center}
+.badges-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.badge-item{background:#fff;border-radius:10px;border:1.5px solid var(--cinza2);padding:.5rem .7rem;text-align:center;font-size:.7rem;color:var(--cinza3)}
+.badge-item.earned{border-color:var(--amarelo);background:var(--amarelo-bg);color:var(--amarelo)}
+.badge-item .bi{font-size:1.5rem;display:block}
+
+/* CONFETTI simples */
+.confetti-wrap{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="pie">🥧</div>
+  <h1>Competição de Leitura</h1>
+  <p>Torta na Cara! — Treino de Letras</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('flash',this)"><span class="tab-icon">🃏</span>Flash</div>
+  <div class="tab" onclick="setTab('quiz',this)"><span class="tab-icon">❓</span>Quiz</div>
+  <div class="tab" onclick="setTab('grade',this)"><span class="tab-icon">🔡</span>Grade</div>
+  <div class="tab" onclick="setTab('aprenda',this)"><span class="tab-icon">📖</span>Aprenda</div>
+</div>
+
+<div class="score-row">
+  <div class="sc"><div class="sc-label">Acertos</div><div class="sc-num g" id="hits">0</div></div>
+  <div class="sc"><div class="sc-label">Erros</div><div class="sc-num r" id="misses">0</div></div>
+  <div class="sc"><div class="sc-label">Sequência</div><div class="sc-num b" id="streak-sc">0</div></div>
+  <div class="sc"><div class="sc-label">Rodada</div><div class="sc-num b" id="round">1</div></div>
+</div>
+<button class="btn-zerar" onclick="zerarTudo()">🔄 Zerar tudo</button>
+
+<!-- FLASH -->
+<div class="panel active" id="panel-flash">
+  <div class="prog"><div class="prog-fill" id="fl-prog" style="width:6%"></div></div>
+  <div class="letter-box" onclick="speakLetter(flashOrder[flashIdx])">
+    <div class="sound-hint">🔊 toque para ouvir</div>
+    <div class="big" id="fl-letter">A</div>
+    <div class="letter-counter" id="fl-hint">1 de 16</div>
+  </div>
+  <div class="flash-fb" id="fl-fb"></div>
+  <div class="flash-btns">
+    <button class="fbtn nok" onclick="flashResult(false)">😅 Praticar mais</button>
+    <button class="fbtn ok" onclick="flashResult(true)">✅ Sei essa!</button>
+    <button class="fbtn shuffle" onclick="shuffleFlash()">🔀 Embaralhar</button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="panel" id="panel-quiz">
+  <div class="prog"><div class="prog-fill" id="qz-prog" style="width:6%"></div></div>
+  <div class="qi">Qual é essa letra?</div>
+  <div class="qword" id="qz-word" onclick="speakLetter(document.getElementById('qz-word').textContent.trim())">A
+    <div class="sound-hint" style="position:absolute;bottom:8px;right:12px;top:auto">🔊</div>
+  </div>
+  <div class="streak" id="streak-msg"></div>
+  <div class="opts" id="qz-opts"></div>
+</div>
+
+<!-- GRADE -->
+<div class="panel" id="panel-grade">
+  <div class="grid-header" id="lg-feedback">Toque em cada letra para ouvir — marque as que já sabe</div>
+  <div class="lg-grid" id="lg-grid"></div>
+  <button class="fbtn shuffle" style="width:100%;margin-top:.25rem" onclick="resetGrid()">🔄 Reiniciar grade</button>
+</div>
+
+<!-- APRENDA -->
+<div class="panel" id="panel-aprenda">
+  <div class="learn-prog" id="learn-dots"></div>
+  <div class="palavra-card">
+    <div class="palavra-letra" id="ap-letter" onclick="speakLetter(learnData[learnIdx].l)">A</div>
+    <div class="palavra-exemplo">
+      <div class="pw" id="ap-word"></div>
+      <div class="desc" id="ap-desc"></div>
+    </div>
+  </div>
+  <div class="nav-btns">
+    <button class="nav-btn" onclick="learnNav(-1)">← Anterior</button>
+    <button class="nav-btn" onclick="speakLetter(learnData[learnIdx].l)">🔊 Ouvir</button>
+    <button class="nav-btn" onclick="learnNav(1)">Próxima →</button>
+  </div>
+  <div class="badges-section">
+    <div class="badges-title">🏅 Conquistas</div>
+    <div class="badges-grid" id="badges"></div>
+  </div>
+</div>
+
+<script>
+const LETTERS=['A','E','I','O','U','J','M','N','F','Z','B','L','D','R','P','C'];
+
+const learnData=[
+  {l:'A',w:'Abelha',d:'A de abelha'},
+  {l:'E',w:'Elefante',d:'E de elefante'},
+  {l:'I',w:'Iguana',d:'I de iguana'},
+  {l:'O',w:'Onça',d:'O de onça'},
+  {l:'U',w:'Uva',d:'U de uva'},
+  {l:'J',w:'Jacaré',d:'J de jacaré'},
+  {l:'M',w:'Macaco',d:'M de macaco'},
+  {l:'N',w:'Nuvem',d:'N de nuvem'},
+  {l:'F',w:'Foca',d:'F de foca'},
+  {l:'Z',w:'Zebra',d:'Z de zebra'},
+  {l:'B',w:'Borboleta',d:'B de borboleta'},
+  {l:'L',w:'Leão',d:'L de leão'},
+  {l:'D',w:'Dinossauro',d:'D de dinossauro'},
+  {l:'R',w:'Rato',d:'R de rato'},
+  {l:'P',w:'Papagaio',d:'P de papagaio'},
+  {l:'C',w:'Cavalo',d:'C de cavalo'},
+];
+
+const BADGE_DEFS=[
+  {id:'first',icon:'🌟',label:'Primeira acerto',cond:()=>hits>=1},
+  {id:'5hits',icon:'🎯',label:'5 acertos',cond:()=>hits>=5},
+  {id:'10hits',icon:'🔟',label:'10 acertos',cond:()=>hits>=10},
+  {id:'streak3',icon:'🔥',label:'3 seguidos',cond:()=>maxStreak>=3},
+  {id:'streak5',icon:'💥',label:'5 seguidos',cond:()=>maxStreak>=5},
+  {id:'allgrid',icon:'🏆',label:'Grade completa',cond:()=>gridDone.size===LETTERS.length},
+  {id:'alllearn',icon:'📚',label:'Todas as letras',cond:()=>learnSeen.size===LETTERS.length},
+  {id:'round3',icon:'🎖️',label:'3 rodadas',cond:()=>roundNum>=3},
+];
+
+let hits=0,misses=0,streakCur=0,maxStreak=0,roundNum=1;
+let flashIdx=0,flashOrder=[...LETTERS];
+let qzAnswered=false,qzIdx=0,qzOrder=[];
+let gridDone=new Set();
+let learnIdx=0,learnSeen=new Set();
+let earnedBadges=new Set();
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function speakLetter(l){
+  if(!l||l.trim().length===0)return;
+  const letter=l.trim()[0];
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(letter);
+  utt.lang='pt-BR';utt.rate=0.8;utt.pitch=1.1;
+  // tenta voz pt-BR
+  const voices=speechSynthesis.getVoices();
+  const ptVoice=voices.find(v=>v.lang.startsWith('pt'));
+  if(ptVoice)utt.voice=ptVoice;
+  speechSynthesis.speak(utt);
+}
+
+// carregar vozes ao iniciar
+if(window.speechSynthesis){
+  speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
+  speechSynthesis.getVoices();
+}
+
+function upd(){
+  document.getElementById('hits').textContent=hits;
+  document.getElementById('misses').textContent=misses;
+  document.getElementById('streak-sc').textContent=streakCur;
+  document.getElementById('round').textContent=roundNum;
+  checkBadges();
+}
+
+function zerarTudo(){
+  if(!confirm('Zerar todos os pontos e progresso?'))return;
+  hits=0;misses=0;streakCur=0;maxStreak=0;roundNum=1;
+  flashIdx=0;flashOrder=[...LETTERS];
+  qzIdx=0;qzOrder=[];
+  gridDone=new Set();learnSeen=new Set();earnedBadges=new Set();
+  showFlash();upd();buildGrid();buildDots();buildBadges();
+  document.getElementById('fl-fb').textContent='';
+  document.getElementById('fl-fb').className='flash-fb';
+}
+
+/* ---- FLASH ---- */
+function showFlash(){
+  const l=flashOrder[flashIdx];
+  const el=document.getElementById('fl-letter');
+  el.textContent=l;
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+  document.getElementById('fl-prog').style.width=Math.round((flashIdx+1)/flashOrder.length*100)+'%';
+  document.getElementById('fl-hint').textContent=(flashIdx+1)+' de '+flashOrder.length;
+}
+
+function flashResult(ok){
+  const fb=document.getElementById('fl-fb');
+  if(ok){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;fb.textContent='⭐ Ótimo!';fb.className='flash-fb ok';}
+  else{misses++;streakCur=0;fb.textContent='💪 Vamos praticar!';fb.className='flash-fb nok';}
+  flashIdx++;
+  if(flashIdx>=flashOrder.length){
+    flashIdx=0;roundNum++;shuffle(flashOrder);
+    fb.textContent='🎉 Rodada completa!';fb.className='flash-fb ok';
+    confetti();
+  }
+  upd();
+  setTimeout(showFlash,600);
+}
+
+function shuffleFlash(){shuffle(flashOrder);flashIdx=0;showFlash();}
+
+/* ---- QUIZ ---- */
+function initQuiz(){qzOrder=shuffle([...LETTERS]);qzIdx=0;nextQuiz();}
+
+function nextQuiz(){
+  qzAnswered=false;
+  const letter=qzOrder[qzIdx];
+  const el=document.getElementById('qz-word');
+  el.childNodes[0].nodeValue=letter+'\n';
+  document.getElementById('qz-prog').style.width=Math.round((qzIdx+1)/qzOrder.length*100)+'%';
+  const wrong=shuffle(LETTERS.filter(l=>l!==letter)).slice(0,3);
+  const opts=shuffle([letter,...wrong]);
+  document.getElementById('qz-opts').innerHTML=opts.map(o=>`<button class="opt" onclick="answerQuiz('${o}','${letter}')">${o}</button>`).join('');
+  const sm=document.getElementById('streak-msg');
+  sm.textContent=streakCur>=3?'🔥 '+streakCur+' seguidos!':streakCur>=1?'✨ '+streakCur+' certos':'';
+  speakLetter(letter);
+}
+
+function answerQuiz(chosen,correct){
+  if(qzAnswered)return;
+  qzAnswered=true;
+  document.querySelectorAll('.opt').forEach(b=>{
+    b.classList.add('disabled');
+    if(b.textContent===correct)b.classList.add('correct');
+    else if(b.textContent===chosen&&chosen!==correct)b.classList.add('wrong');
+  });
+  if(chosen===correct){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;}
+  else{misses++;streakCur=0;}
+  upd();
+  setTimeout(()=>{
+    qzIdx++;
+    if(qzIdx>=qzOrder.length){qzIdx=0;roundNum++;shuffle(qzOrder);upd();confetti();}
+    nextQuiz();
+  },900);
+}
+
+/* ---- GRADE ---- */
+function buildGrid(){
+  document.getElementById('lg-grid').innerHTML=LETTERS.map(l=>`
+    <div class="gi${gridDone.has(l)?' done':''}" onclick="toggleGrid(this,'${l}')">
+      ${l}<div class="gi-label">${gridDone.has(l)?'sei!':'toque'}</div>
+    </div>`).join('');
+  updateGF();
+}
+
+function toggleGrid(el,l){
+  speakLetter(l);
+  setTimeout(()=>{
+    if(gridDone.has(l)){gridDone.delete(l);el.className='gi';el.innerHTML=l+'<div class="gi-label">toque</div>';misses=Math.max(0,misses-1);}
+    else{gridDone.add(l);el.className='gi done';el.innerHTML=l+'<div class="gi-label">sei!</div>';hits++;}
+    upd();updateGF();
+  },300);
+}
+
+function updateGF(){
+  const n=gridDone.size,t=LETTERS.length;
+  document.getElementById('lg-feedback').textContent=
+    n===0?'Toque em cada letra para ouvir — marque as que já sabe':
+    n===t?'🏆 Todas as letras dominadas! Incrível!':n+' de '+t+' letras dominadas';
+}
+
+function resetGrid(){gridDone=new Set();buildGrid();}
+
+/* ---- APRENDA ---- */
+function buildDots(){
+  document.getElementById('learn-dots').innerHTML=LETTERS.map((_,i)=>`<div class="lp-dot${learnSeen.has(i)?' seen':''}${i===learnIdx?' current':''}" onclick="goLearn(${i})"></div>`).join('');
+}
+
+function showLearn(){
+  const d=learnData[learnIdx];
+  document.getElementById('ap-letter').textContent=d.l;
+  const word=d.w;
+  const first=word[0];
+  document.getElementById('ap-word').innerHTML='<span>'+first+'</span>'+word.slice(1);
+  document.getElementById('ap-desc').textContent=d.d;
+  learnSeen.add(learnIdx);
+  buildDots();
+  upd();
+  speakLetter(d.l);
+}
+
+function learnNav(dir){learnIdx=(learnIdx+dir+LETTERS.length)%LETTERS.length;showLearn();}
+function goLearn(i){learnIdx=i;showLearn();}
+
+/* ---- BADGES ---- */
+function buildBadges(){
+  document.getElementById('badges').innerHTML=BADGE_DEFS.map(b=>`
+    <div class="badge-item${earnedBadges.has(b.id)?' earned':''}">
+      <span class="bi">${b.icon}</span>${b.label}
+    </div>`).join('');
+}
+
+function checkBadges(){
+  let changed=false;
+  BADGE_DEFS.forEach(b=>{if(!earnedBadges.has(b.id)&&b.cond()){earnedBadges.add(b.id);changed=true;}});
+  if(changed)buildBadges();
+}
+
+/* ---- TABS ---- */
+function setTab(t,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  btn.classList.add('active');
+  if(t==='quiz')initQuiz();
+  if(t==='grade')buildGrid();
+  if(t==='aprenda'){showLearn();buildBadges();}
+}
+
+/* ---- CONFETTI ---- */
+function confetti(){
+  const wrap=document.createElement('div');
+  wrap.className='confetti-wrap';
+  const colors=['#0D47A1','#2E7D32','#F57F17','#C62828','#6A1B9A'];
+  for(let i=0;i<40;i++){
+    const s=document.createElement('div');
+    const size=(Math.random()*10+6)+'px';
+    s.style.cssText=`position:absolute;width:${size};height:${size};background:${colors[i%colors.length]};left:${Math.random()*100}%;top:-20px;border-radius:${Math.random()>.5?'50%':'2px'};animation:fall${Math.floor(Math.random()*3)} ${1+Math.random()*1.5}s linear forwards`;
+    wrap.appendChild(s);
+  }
+  const st=document.createElement('style');
+  st.textContent='@keyframes fall0{to{transform:translateY(110vh) rotate(360deg);opacity:0}}@keyframes fall1{to{transform:translateY(110vh) rotate(-270deg);opacity:0}}@keyframes fall2{to{transform:translateY(110vh) rotate(180deg) translateX(60px);opacity:0}}';
+  document.head.appendChild(st);
+  document.body.appendChild(wrap);
+  setTimeout(()=>{wrap.remove();st.remove();},3000);
+}
+
+/* INIT */
+showFlash();upd();buildBadges();
+</script>
+</body>
+</html>
