@@ -285,22 +285,35 @@ let earnedBadges=new Set();
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 function speakLetter(l){
-  if(!l||l.trim().length===0)return;
+  if(!window.speechSynthesis||!l||l.trim().length===0)return;
   const letter=l.trim()[0];
-  window.speechSynthesis&&window.speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(letter);
-  utt.lang='pt-BR';utt.rate=0.8;utt.pitch=1.1;
-  // tenta voz pt-BR
-  const voices=speechSynthesis.getVoices();
-  const ptVoice=voices.find(v=>v.lang.startsWith('pt'));
-  if(ptVoice)utt.voice=ptVoice;
-  speechSynthesis.speak(utt);
+  const synth=window.speechSynthesis;
+  synth.cancel();
+  // Chrome no Android às vezes ignora um speak() chamado no mesmo tick de um
+  // cancel() (e também exige resume() se a síntese travou "pausada" depois
+  // que o app volta de segundo plano) — por isso o pequeno atraso e o resume.
+  setTimeout(()=>{
+    const utt=new SpeechSynthesisUtterance(letter);
+    utt.lang='pt-BR';utt.rate=0.8;utt.pitch=1.1;
+    const ptVoice=synth.getVoices().find(v=>v.lang.startsWith('pt'));
+    if(ptVoice)utt.voice=ptVoice;
+    synth.resume();
+    synth.speak(utt);
+  },80);
 }
 
-// carregar vozes ao iniciar
+// carregar vozes ao iniciar + contornar o bug do Android/Chrome em que a
+// fila de fala trava depois que o app fica em segundo plano (tela bloqueada,
+// troca de app) e nunca mais volta a falar sem um resume() manual.
 if(window.speechSynthesis){
   speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
   speechSynthesis.getVoices();
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden)speechSynthesis.resume();
+  });
+  setInterval(()=>{
+    if(speechSynthesis.paused)speechSynthesis.resume();
+  },4000);
 }
 
 function upd(){
