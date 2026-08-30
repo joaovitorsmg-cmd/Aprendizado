@@ -1,4 +1,9 @@
-const CACHE_VERSION = 'torta-na-cara-v1';
+const CACHE_VERSION = 'alfabetizando-v2';
+// Arquivos que quase nunca mudam (ícones) usam "cache primeiro" para abrir
+// instantâneo. HTML/manifest usam "rede primeiro" (ver fetch abaixo) para
+// que correções enviadas cheguem no próximo acesso, com o cache só como
+// reserva para uso offline.
+const NETWORK_FIRST = ['./', './index.html', './manifest.webmanifest'];
 const CACHE_FILES = [
   './',
   './index.html',
@@ -36,22 +41,33 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function cachePut(request, response) {
+  if (response && response.status === 200 && response.type === 'basic') {
+    caches.open(CACHE_VERSION).then((cache) => cache.put(request, response.clone()));
+  }
+  return response;
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+  const filename = './' + (url.pathname.split('/').pop() || '');
+  const isNetworkFirst = event.request.mode === 'navigate' || NETWORK_FIRST.includes(filename);
+
+  if (isNetworkFirst) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => cachePut(event.request, response))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
-            const clone = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached || caches.match('./index.html'));
-
-      return cached || network;
+      if (cached) return cached;
+      return fetch(event.request).then((response) => cachePut(event.request, response));
     })
   );
 });
