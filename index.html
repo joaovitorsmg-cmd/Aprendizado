@@ -2,8 +2,32 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Treino de Letras – Torta na Cara!</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Torta na Cara! – Treino de Letras</title>
+<meta name="description" content="Jogo educativo de treino de letras e leitura para crianças, com flashcards, quiz, grade de letras e modo Aprenda.">
+
+<!-- PWA / instalação no Android -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0D47A1">
+<meta name="background-color" content="#E3F2FD">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Torta na Cara!">
+<meta name="color-scheme" content="light">
+
+<!-- iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Torta na Cara!">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+
+<!-- Ícones / favicon -->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="shortcut icon" href="favicon.ico">
 <style>
 :root{
   --azul:#0D47A1;--azul-claro:#1565C0;--azul-bg:#E3F2FD;
@@ -114,6 +138,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#
 
 /* CONFETTI simples */
 .confetti-wrap{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+
+/* SAFE AREA (notch/status bar Android/iOS em modo standalone) */
+body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:calc(2rem + env(safe-area-inset-bottom))}
+
+/* INSTALAR APP */
+.install-btn{display:none;align-items:center;justify-content:center;gap:6px;margin:.6rem auto 0;padding:.5rem 1.1rem;background:#fff;color:var(--azul);border:1.5px solid #fff;border-radius:20px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.install-btn.show{display:inline-flex}
+.install-btn:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -122,6 +154,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#
   <div class="pie">🥧</div>
   <h1>Competição de Leitura</h1>
   <p>Torta na Cara! — Treino de Letras</p>
+  <button class="install-btn" id="install-btn" onclick="installApp()">⬇️ Instalar aplicativo</button>
 </div>
 
 <div class="tabs">
@@ -426,6 +459,35 @@ function confetti(){
   document.head.appendChild(st);
   document.body.appendChild(wrap);
   setTimeout(()=>{wrap.remove();st.remove();},3000);
+}
+
+/* ---- PWA: instalação e modo offline (Android) ---- */
+let deferredPrompt=null;
+const installBtn=document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  installBtn.classList.add('show');
+});
+
+async function installApp(){
+  if(!deferredPrompt)return;
+  installBtn.classList.remove('show');
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt=null;
+}
+
+window.addEventListener('appinstalled',()=>{
+  installBtn.classList.remove('show');
+  deferredPrompt=null;
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
 }
 
 /* INIT */
