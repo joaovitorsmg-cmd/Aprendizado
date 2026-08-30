@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Alfabetizando – Treino de Letras</title>
-<meta name="description" content="Jogo educativo de treino de letras e leitura para crianças, com flashcards, quiz, grade de letras e modo Aprenda.">
+<meta name="description" content="Jogo educativo de treino de letras, números e leitura para crianças, com flashcards, quiz, grade e modo Aprenda.">
 
 <!-- PWA / instalação no Android -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -152,6 +152,12 @@ body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left)
 .pwa-banner .pwa-install{display:none;background:var(--azul);color:#fff;border:none;border-radius:20px;padding:.5rem 1rem;font-size:.85rem;font-weight:700;cursor:pointer;flex-shrink:0}
 .pwa-banner .pwa-close{background:none;border:none;font-size:1.2rem;color:var(--cinza3);cursor:pointer;padding:.2rem .3rem;flex-shrink:0}
 body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
+
+/* SELETOR DE ASSUNTO (Letras / Números) */
+.mode-switch{display:flex;gap:8px;padding:.7rem 1rem 0}
+.mode-btn{flex:1;padding:.55rem;border-radius:20px;border:1.5px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-size:.85rem;font-weight:700;cursor:pointer;transition:.15s}
+.mode-btn.active{background:#fff;color:var(--azul);border-color:#fff}
+.mode-btn:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -169,7 +175,11 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
 <div class="header">
   <div class="pie">🥧</div>
   <h1>Alfabetizando</h1>
-  <p>Competição de Leitura — Treino de Letras</p>
+  <p>Competição de Leitura — Treino de Letras e Números</p>
+  <div class="mode-switch">
+    <button class="mode-btn active" id="mode-letras" onclick="setMode('letras')">🔤 Letras</button>
+    <button class="mode-btn" id="mode-numeros" onclick="setMode('numeros')">🔢 Números</button>
+  </div>
 </div>
 
 <div class="tabs">
@@ -190,7 +200,7 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
 <!-- FLASH -->
 <div class="panel active" id="panel-flash">
   <div class="prog"><div class="prog-fill" id="fl-prog" style="width:6%"></div></div>
-  <div class="letter-box" onclick="speakLetter(flashOrder[flashIdx])">
+  <div class="letter-box" onclick="speakFlashCurrent()">
     <div class="sound-hint">🔊 toque para ouvir</div>
     <div class="big" id="fl-letter">A</div>
     <div class="letter-counter" id="fl-hint">1 de 16</div>
@@ -206,8 +216,9 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
 <!-- QUIZ -->
 <div class="panel" id="panel-quiz">
   <div class="prog"><div class="prog-fill" id="qz-prog" style="width:6%"></div></div>
-  <div class="qi">Qual é essa letra?</div>
-  <div class="qword" id="qz-word" onclick="speakLetter(document.getElementById('qz-word').textContent.trim())">A
+  <div class="qi" id="qz-question">Qual é essa letra?</div>
+  <div class="qword" id="qz-word" onclick="speakQuizCurrent()">
+    <span id="qz-word-text">A</span>
     <div class="sound-hint" style="position:absolute;bottom:8px;right:12px;top:auto">🔊</div>
   </div>
   <div class="streak" id="streak-msg"></div>
@@ -225,7 +236,7 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
 <div class="panel" id="panel-aprenda">
   <div class="learn-prog" id="learn-dots"></div>
   <div class="palavra-card">
-    <div class="palavra-letra" id="ap-letter" onclick="speakLetter(learnData[learnIdx].l)">A</div>
+    <div class="palavra-letra" id="ap-letter" onclick="speakLearnCurrent()">A</div>
     <div class="palavra-exemplo">
       <div class="pw" id="ap-word"></div>
       <div class="desc" id="ap-desc"></div>
@@ -233,7 +244,7 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
   </div>
   <div class="nav-btns">
     <button class="nav-btn" onclick="learnNav(-1)">← Anterior</button>
-    <button class="nav-btn" onclick="speakLetter(learnData[learnIdx].l)">🔊 Ouvir</button>
+    <button class="nav-btn" onclick="speakLearnCurrent()">🔊 Ouvir</button>
     <button class="nav-btn" onclick="learnNav(1)">Próxima →</button>
   </div>
   <div class="badges-section">
@@ -244,8 +255,9 @@ body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
 
 <script>
 const LETTERS=['A','E','I','O','U','J','M','N','F','Z','B','L','D','R','P','C'];
+const NUMBERS=['0','1','2','3','4','5','6','7','8','9'];
 
-const learnData=[
+const learnDataLetras=[
   {l:'A',w:'Abelha',d:'A de abelha'},
   {l:'E',w:'Elefante',d:'E de elefante'},
   {l:'I',w:'Iguana',d:'I de iguana'},
@@ -264,43 +276,115 @@ const learnData=[
   {l:'C',w:'Cavalo',d:'C de cavalo'},
 ];
 
+const learnDataNumeros=[
+  {l:'0',w:'Zero',d:'Nenhuma estrela'},
+  {l:'1',w:'Um',d:'⭐'},
+  {l:'2',w:'Dois',d:'⭐⭐'},
+  {l:'3',w:'Três',d:'⭐⭐⭐'},
+  {l:'4',w:'Quatro',d:'⭐⭐⭐⭐'},
+  {l:'5',w:'Cinco',d:'⭐⭐⭐⭐⭐'},
+  {l:'6',w:'Seis',d:'⭐⭐⭐⭐⭐⭐'},
+  {l:'7',w:'Sete',d:'⭐⭐⭐⭐⭐⭐⭐'},
+  {l:'8',w:'Oito',d:'⭐⭐⭐⭐⭐⭐⭐⭐'},
+  {l:'9',w:'Nove',d:'⭐⭐⭐⭐⭐⭐⭐⭐⭐'},
+];
+
+const MODES={
+  letras:{
+    label:'Letras',
+    questionText:'Qual é essa letra?',
+    gridHint:'Toque em cada letra para ouvir — marque as que já sabe',
+    gridDoneAll:'🏆 Todas as letras dominadas! Incrível!',
+    gridProgress:(n,t)=>n+' de '+t+' letras dominadas',
+    items:LETTERS, learnData:learnDataLetras,
+  },
+  numeros:{
+    label:'Números',
+    questionText:'Qual é esse número?',
+    gridHint:'Toque em cada número para ouvir — marque os que já sabe',
+    gridDoneAll:'🏆 Todos os números dominados! Incrível!',
+    gridProgress:(n,t)=>n+' de '+t+' números dominados',
+    items:NUMBERS, learnData:learnDataNumeros,
+  }
+};
+
 const BADGE_DEFS=[
-  {id:'first',icon:'🌟',label:'Primeira acerto',cond:()=>hits>=1},
+  {id:'first',icon:'🌟',label:'Primeiro acerto',cond:()=>hits>=1},
   {id:'5hits',icon:'🎯',label:'5 acertos',cond:()=>hits>=5},
   {id:'10hits',icon:'🔟',label:'10 acertos',cond:()=>hits>=10},
   {id:'streak3',icon:'🔥',label:'3 seguidos',cond:()=>maxStreak>=3},
   {id:'streak5',icon:'💥',label:'5 seguidos',cond:()=>maxStreak>=5},
-  {id:'allgrid',icon:'🏆',label:'Grade completa',cond:()=>gridDone.size===LETTERS.length},
-  {id:'alllearn',icon:'📚',label:'Todas as letras',cond:()=>learnSeen.size===LETTERS.length},
+  {id:'allgrid',icon:'🏆',label:'Grade completa',cond:()=>STATE.letras.gridDone.size===MODES.letras.items.length||STATE.numeros.gridDone.size===MODES.numeros.items.length},
+  {id:'alllearn',icon:'📚',label:'Aprendeu tudo',cond:()=>STATE.letras.learnSeen.size===MODES.letras.items.length||STATE.numeros.learnSeen.size===MODES.numeros.items.length},
   {id:'round3',icon:'🎖️',label:'3 rodadas',cond:()=>roundNum>=3},
 ];
 
 let hits=0,misses=0,streakCur=0,maxStreak=0,roundNum=1;
-let flashIdx=0,flashOrder=[...LETTERS];
-let qzAnswered=false,qzIdx=0,qzOrder=[];
-let gridDone=new Set();
-let learnIdx=0,learnSeen=new Set();
 let earnedBadges=new Set();
+let qzAnswered=false;
+
+function freshState(mode){
+  return {
+    flashIdx:0, flashOrder:[...MODES[mode].items],
+    qzIdx:0, qzOrder:[],
+    gridDone:new Set(),
+    learnIdx:0, learnSeen:new Set(),
+  };
+}
+
+let MODE='letras';
+let STATE={letras:freshState('letras'), numeros:freshState('numeros')};
+
+function st(){return STATE[MODE];}
+function items(){return MODES[MODE].items;}
+function curLearnData(){return MODES[MODE].learnData;}
+function findWord(v){const d=curLearnData().find(x=>x.l===v);return d?d.w:undefined;}
+
+function currentFlashItem(){return st().flashOrder[st().flashIdx];}
+function currentQuizItem(){return st().qzOrder[st().qzIdx];}
+function currentLearnEntry(){return curLearnData()[st().learnIdx];}
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-function speakLetter(l){
-  if(!window.speechSynthesis||!l||l.trim().length===0)return;
-  const letter=l.trim()[0];
+// Fala o texto exato recebido. Chrome no Android às vezes ignora um speak()
+// chamado no mesmo tick de um cancel() (e também exige resume() se a síntese
+// travou "pausada" depois que o app volta de segundo plano) — por isso o
+// pequeno atraso e o resume().
+function speak(text){
+  if(!window.speechSynthesis||!text)return;
   const synth=window.speechSynthesis;
   synth.cancel();
-  // Chrome no Android às vezes ignora um speak() chamado no mesmo tick de um
-  // cancel() (e também exige resume() se a síntese travou "pausada" depois
-  // que o app volta de segundo plano) — por isso o pequeno atraso e o resume.
   setTimeout(()=>{
-    const utt=new SpeechSynthesisUtterance(letter);
-    utt.lang='pt-BR';utt.rate=0.8;utt.pitch=1.1;
-    const ptVoice=synth.getVoices().find(v=>v.lang.startsWith('pt'));
+    const utt=new SpeechSynthesisUtterance(text);
+    utt.lang='pt-BR';utt.rate=0.75;utt.pitch=1.0;
+    const voices=synth.getVoices();
+    // prefere uma voz de rede (geralmente mais natural) a uma voz local
+    // "robotizada"; o navegador não permite instalar/baixar outra voz por
+    // conta própria — só o Android (Config. > Fala > Google) pode fazer isso.
+    const ptVoice=
+      voices.find(v=>v.lang.startsWith('pt')&&!v.localService)||
+      voices.find(v=>v.lang.startsWith('pt')&&/google/i.test(v.name))||
+      voices.find(v=>v.lang.startsWith('pt'));
     if(ptVoice)utt.voice=ptVoice;
     synth.resume();
     synth.speak(utt);
   },80);
 }
+
+// Em modo de aprendizado (Flash/Grade/Aprenda) reforça o som com a palavra de
+// exemplo ("B... de Borboleta"), o que ajuda a distinguir letras cujo NOME
+// rima e soa parecido (B/D/P/T/V/C/Z). Em Números a palavra já é o próprio
+// nome do número, então falamos só ela ("Três"), sem repetir o dígito.
+function speechForLearning(value){
+  const word=findWord(value);
+  if(!word)return String(value);
+  return MODE==='numeros'?word:(value+'... de '+word);
+}
+
+function speakFlashCurrent(){speak(speechForLearning(currentFlashItem()));}
+function speakGridItem(v){speak(speechForLearning(v));}
+function speakLearnCurrent(){speak(speechForLearning(currentLearnEntry().l));}
+function speakQuizCurrent(){speak(String(currentQuizItem()));}
 
 // carregar vozes ao iniciar + contornar o bug do Android/Chrome em que a
 // fila de fala trava depois que o app fica em segundo plano (tela bloqueada,
@@ -327,33 +411,51 @@ function upd(){
 function zerarTudo(){
   if(!confirm('Zerar todos os pontos e progresso?'))return;
   hits=0;misses=0;streakCur=0;maxStreak=0;roundNum=1;
-  flashIdx=0;flashOrder=[...LETTERS];
-  qzIdx=0;qzOrder=[];
-  gridDone=new Set();learnSeen=new Set();earnedBadges=new Set();
-  showFlash();upd();buildGrid();buildDots();buildBadges();
+  STATE.letras=freshState('letras');
+  STATE.numeros=freshState('numeros');
+  earnedBadges=new Set();
+  showFlash();buildGrid();buildDots();buildBadges();upd();
+  // Quiz e Aprenda falam em voz alta ao renderizar — só os atualizamos de
+  // verdade se já estiverem visíveis, senão o reset "fala sozinho" numa aba
+  // escondida. (Foi justamente deixar o Quiz sem esse reset que causava o
+  // "undefined" na tela quando alguém zerava tudo estando nessa aba.)
+  if(document.getElementById('panel-quiz').classList.contains('active'))initQuiz();
+  if(document.getElementById('panel-aprenda').classList.contains('active'))showLearn();
   document.getElementById('fl-fb').textContent='';
   document.getElementById('fl-fb').className='flash-fb';
 }
 
+function setMode(mode){
+  if(mode===MODE)return;
+  MODE=mode;
+  document.getElementById('mode-letras').classList.toggle('active',mode==='letras');
+  document.getElementById('mode-numeros').classList.toggle('active',mode==='numeros');
+  showFlash();buildGrid();buildDots();buildBadges();
+  if(document.getElementById('panel-quiz').classList.contains('active'))initQuiz();
+  if(document.getElementById('panel-aprenda').classList.contains('active'))showLearn();
+}
+
 /* ---- FLASH ---- */
 function showFlash(){
-  const l=flashOrder[flashIdx];
+  const s=st();
+  const l=s.flashOrder[s.flashIdx];
   const el=document.getElementById('fl-letter');
   el.textContent=l;
   el.classList.remove('pop');
   void el.offsetWidth;
   el.classList.add('pop');
-  document.getElementById('fl-prog').style.width=Math.round((flashIdx+1)/flashOrder.length*100)+'%';
-  document.getElementById('fl-hint').textContent=(flashIdx+1)+' de '+flashOrder.length;
+  document.getElementById('fl-prog').style.width=Math.round((s.flashIdx+1)/s.flashOrder.length*100)+'%';
+  document.getElementById('fl-hint').textContent=(s.flashIdx+1)+' de '+s.flashOrder.length;
 }
 
 function flashResult(ok){
+  const s=st();
   const fb=document.getElementById('fl-fb');
   if(ok){hits++;streakCur++;if(streakCur>maxStreak)maxStreak=streakCur;fb.textContent='⭐ Ótimo!';fb.className='flash-fb ok';}
   else{misses++;streakCur=0;fb.textContent='💪 Vamos praticar!';fb.className='flash-fb nok';}
-  flashIdx++;
-  if(flashIdx>=flashOrder.length){
-    flashIdx=0;roundNum++;shuffle(flashOrder);
+  s.flashIdx++;
+  if(s.flashIdx>=s.flashOrder.length){
+    s.flashIdx=0;roundNum++;shuffle(s.flashOrder);
     fb.textContent='🎉 Rodada completa!';fb.className='flash-fb ok';
     confetti();
   }
@@ -361,23 +463,32 @@ function flashResult(ok){
   setTimeout(showFlash,600);
 }
 
-function shuffleFlash(){shuffle(flashOrder);flashIdx=0;showFlash();}
+function shuffleFlash(){const s=st();shuffle(s.flashOrder);s.flashIdx=0;showFlash();}
 
 /* ---- QUIZ ---- */
-function initQuiz(){qzOrder=shuffle([...LETTERS]);qzIdx=0;nextQuiz();}
+function initQuiz(){
+  const s=st();
+  s.qzOrder=shuffle([...items()]);
+  s.qzIdx=0;
+  document.getElementById('qz-question').textContent=MODES[MODE].questionText;
+  nextQuiz();
+}
 
 function nextQuiz(){
+  const s=st();
+  // segurança extra: nunca deixa a pergunta renderizar "undefined" mesmo se
+  // algo deixar a lista da rodada vazia.
+  if(!s.qzOrder||!s.qzOrder.length){s.qzOrder=shuffle([...items()]);s.qzIdx=0;}
   qzAnswered=false;
-  const letter=qzOrder[qzIdx];
-  const el=document.getElementById('qz-word');
-  el.childNodes[0].nodeValue=letter+'\n';
-  document.getElementById('qz-prog').style.width=Math.round((qzIdx+1)/qzOrder.length*100)+'%';
-  const wrong=shuffle(LETTERS.filter(l=>l!==letter)).slice(0,3);
+  const letter=s.qzOrder[s.qzIdx];
+  document.getElementById('qz-word-text').textContent=letter;
+  document.getElementById('qz-prog').style.width=Math.round((s.qzIdx+1)/s.qzOrder.length*100)+'%';
+  const wrong=shuffle(items().filter(v=>v!==letter)).slice(0,3);
   const opts=shuffle([letter,...wrong]);
   document.getElementById('qz-opts').innerHTML=opts.map(o=>`<button class="opt" onclick="answerQuiz('${o}','${letter}')">${o}</button>`).join('');
   const sm=document.getElementById('streak-msg');
   sm.textContent=streakCur>=3?'🔥 '+streakCur+' seguidos!':streakCur>=1?'✨ '+streakCur+' certos':'';
-  speakLetter(letter);
+  speak(String(letter));
 }
 
 function answerQuiz(chosen,correct){
@@ -392,59 +503,64 @@ function answerQuiz(chosen,correct){
   else{misses++;streakCur=0;}
   upd();
   setTimeout(()=>{
-    qzIdx++;
-    if(qzIdx>=qzOrder.length){qzIdx=0;roundNum++;shuffle(qzOrder);upd();confetti();}
+    const s=st();
+    s.qzIdx++;
+    if(s.qzIdx>=s.qzOrder.length){s.qzIdx=0;roundNum++;shuffle(s.qzOrder);upd();confetti();}
     nextQuiz();
   },900);
 }
 
 /* ---- GRADE ---- */
 function buildGrid(){
-  document.getElementById('lg-grid').innerHTML=LETTERS.map(l=>`
-    <div class="gi${gridDone.has(l)?' done':''}" onclick="toggleGrid(this,'${l}')">
-      ${l}<div class="gi-label">${gridDone.has(l)?'sei!':'toque'}</div>
+  const s=st();
+  document.getElementById('lg-grid').innerHTML=items().map(v=>`
+    <div class="gi${s.gridDone.has(v)?' done':''}" onclick="toggleGrid(this,'${v}')">
+      ${v}<div class="gi-label">${s.gridDone.has(v)?'sei!':'toque'}</div>
     </div>`).join('');
   updateGF();
 }
 
-function toggleGrid(el,l){
-  speakLetter(l);
+function toggleGrid(el,v){
+  speakGridItem(v);
   setTimeout(()=>{
-    if(gridDone.has(l)){gridDone.delete(l);el.className='gi';el.innerHTML=l+'<div class="gi-label">toque</div>';misses=Math.max(0,misses-1);}
-    else{gridDone.add(l);el.className='gi done';el.innerHTML=l+'<div class="gi-label">sei!</div>';hits++;}
+    const s=st();
+    if(s.gridDone.has(v)){s.gridDone.delete(v);el.className='gi';el.innerHTML=v+'<div class="gi-label">toque</div>';misses=Math.max(0,misses-1);}
+    else{s.gridDone.add(v);el.className='gi done';el.innerHTML=v+'<div class="gi-label">sei!</div>';hits++;}
     upd();updateGF();
   },300);
 }
 
 function updateGF(){
-  const n=gridDone.size,t=LETTERS.length;
+  const s=st(),m=MODES[MODE];
+  const n=s.gridDone.size,t=items().length;
   document.getElementById('lg-feedback').textContent=
-    n===0?'Toque em cada letra para ouvir — marque as que já sabe':
-    n===t?'🏆 Todas as letras dominadas! Incrível!':n+' de '+t+' letras dominadas';
+    n===0?m.gridHint:n===t?m.gridDoneAll:m.gridProgress(n,t);
 }
 
-function resetGrid(){gridDone=new Set();buildGrid();}
+function resetGrid(){st().gridDone=new Set();buildGrid();}
 
 /* ---- APRENDA ---- */
 function buildDots(){
-  document.getElementById('learn-dots').innerHTML=LETTERS.map((_,i)=>`<div class="lp-dot${learnSeen.has(i)?' seen':''}${i===learnIdx?' current':''}" onclick="goLearn(${i})"></div>`).join('');
+  const s=st();
+  document.getElementById('learn-dots').innerHTML=items().map((_,i)=>`<div class="lp-dot${s.learnSeen.has(i)?' seen':''}${i===s.learnIdx?' current':''}" onclick="goLearn(${i})"></div>`).join('');
 }
 
 function showLearn(){
-  const d=learnData[learnIdx];
+  const s=st();
+  const d=curLearnData()[s.learnIdx];
   document.getElementById('ap-letter').textContent=d.l;
   const word=d.w;
   const first=word[0];
   document.getElementById('ap-word').innerHTML='<span>'+first+'</span>'+word.slice(1);
   document.getElementById('ap-desc').textContent=d.d;
-  learnSeen.add(learnIdx);
+  s.learnSeen.add(s.learnIdx);
   buildDots();
   upd();
-  speakLetter(d.l);
+  speakLearnCurrent();
 }
 
-function learnNav(dir){learnIdx=(learnIdx+dir+LETTERS.length)%LETTERS.length;showLearn();}
-function goLearn(i){learnIdx=i;showLearn();}
+function learnNav(dir){const s=st();s.learnIdx=(s.learnIdx+dir+items().length)%items().length;showLearn();}
+function goLearn(i){st().learnIdx=i;showLearn();}
 
 /* ---- BADGES ---- */
 function buildBadges(){

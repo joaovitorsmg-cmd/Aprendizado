@@ -2,7 +2,7 @@
   "id": ".",
   "name": "Alfabetizando",
   "short_name": "Alfabetizando",
-  "description": "Jogo educativo de treino de letras e leitura para crianças, com flashcards, quiz, grade de letras e modo Aprenda.",
+  "description": "Jogo educativo de treino de letras, números e leitura para crianças, com flashcards, quiz, grade e modo Aprenda.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
