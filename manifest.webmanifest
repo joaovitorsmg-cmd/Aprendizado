@@ -1,10 +1,10 @@
 {
-  "id": "/",
+  "id": ".",
   "name": "Alfabetizando",
   "short_name": "Alfabetizando",
   "description": "Jogo educativo de treino de letras e leitura para crianças, com flashcards, quiz, grade de letras e modo Aprenda.",
-  "start_url": "/index.html",
-  "scope": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait-primary",
