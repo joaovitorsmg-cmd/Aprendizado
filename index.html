@@ -142,19 +142,34 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#
 /* SAFE AREA (notch/status bar Android/iOS em modo standalone) */
 body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:calc(2rem + env(safe-area-inset-bottom))}
 
-/* INSTALAR APP */
-.install-btn{display:none;align-items:center;justify-content:center;gap:6px;margin:.6rem auto 0;padding:.5rem 1.1rem;background:#fff;color:var(--azul);border:1.5px solid #fff;border-radius:20px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.install-btn.show{display:inline-flex}
-.install-btn:active{transform:scale(.97)}
+/* BANNER DE INSTALAÇÃO (aparece sozinho ao abrir) */
+.pwa-banner{position:fixed;left:0;right:0;top:0;z-index:1000;display:flex;align-items:center;gap:.7rem;padding:.7rem .8rem;padding-top:calc(.7rem + env(safe-area-inset-top));background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(-110%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.pwa-banner.show{transform:translateY(0)}
+.pwa-banner img{width:44px;height:44px;border-radius:10px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.pwa-banner .pwa-txt{flex:1;min-width:0}
+.pwa-banner .pwa-txt strong{display:block;font-size:.92rem;color:var(--texto)}
+.pwa-banner .pwa-txt span{display:block;font-size:.75rem;color:var(--texto2)}
+.pwa-banner .pwa-install{display:none;background:var(--azul);color:#fff;border:none;border-radius:20px;padding:.5rem 1rem;font-size:.85rem;font-weight:700;cursor:pointer;flex-shrink:0}
+.pwa-banner .pwa-close{background:none;border:none;font-size:1.2rem;color:var(--cinza3);cursor:pointer;padding:.2rem .3rem;flex-shrink:0}
+body.pwa-banner-open{padding-top:calc(64px + env(safe-area-inset-top))}
 </style>
 </head>
 <body>
+
+<div class="pwa-banner" id="pwa-banner">
+  <img src="icons/icon-96.png" alt="Ícone Alfabetizando">
+  <div class="pwa-txt">
+    <strong>Instalar Alfabetizando</strong>
+    <span>Adicione à tela inicial para abrir como um app</span>
+  </div>
+  <button class="pwa-install" id="pwa-install-btn" onclick="installApp()">Instalar</button>
+  <button class="pwa-close" onclick="dismissBanner()" aria-label="Fechar">✕</button>
+</div>
 
 <div class="header">
   <div class="pie">🥧</div>
   <h1>Alfabetizando</h1>
   <p>Competição de Leitura — Treino de Letras</p>
-  <button class="install-btn" id="install-btn" onclick="installApp()">⬇️ Instalar aplicativo</button>
 </div>
 
 <div class="tabs">
@@ -461,27 +476,73 @@ function confetti(){
   setTimeout(()=>{wrap.remove();st.remove();},3000);
 }
 
-/* ---- PWA: instalação e modo offline (Android) ---- */
+/* ---- PWA: instalação automática e modo offline (Android) ---- */
 let deferredPrompt=null;
-const installBtn=document.getElementById('install-btn');
+const pwaBanner=document.getElementById('pwa-banner');
+const pwaInstallBtn=document.getElementById('pwa-install-btn');
+const DISMISS_KEY='alfabetizando-install-dismissed';
+const DISMISS_DAYS=7;
+
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+
+function wasDismissedRecently(){
+  const ts=localStorage.getItem(DISMISS_KEY);
+  if(!ts)return false;
+  return (Date.now()-Number(ts)) < DISMISS_DAYS*24*60*60*1000;
+}
+
+function showBanner(){
+  if(isStandalone()||wasDismissedRecently())return;
+  pwaBanner.classList.add('show');
+  document.body.classList.add('pwa-banner-open');
+}
+
+function hideBanner(){
+  pwaBanner.classList.remove('show');
+  document.body.classList.remove('pwa-banner-open');
+}
+
+function dismissBanner(){
+  localStorage.setItem(DISMISS_KEY,String(Date.now()));
+  hideBanner();
+}
 
 window.addEventListener('beforeinstallprompt',(e)=>{
   e.preventDefault();
   deferredPrompt=e;
-  installBtn.classList.add('show');
+  pwaInstallBtn.style.display='inline-block';
+  showBanner();
 });
 
 async function installApp(){
-  if(!deferredPrompt)return;
-  installBtn.classList.remove('show');
+  if(!deferredPrompt){dismissBanner();return;}
   deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
+  const choice=await deferredPrompt.userChoice;
   deferredPrompt=null;
+  hideBanner();
+  if(choice&&choice.outcome==='dismissed'){
+    localStorage.setItem(DISMISS_KEY,String(Date.now()));
+  }
 }
 
 window.addEventListener('appinstalled',()=>{
-  installBtn.classList.remove('show');
+  hideBanner();
   deferredPrompt=null;
+});
+
+// Se o navegador não oferecer o prompt automático (ex.: Chrome ainda avaliando
+// os critérios), mostra um aviso com o passo manual em vez de deixar a pessoa sem saída.
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    if(deferredPrompt||isStandalone()||wasDismissedRecently())return;
+    if(/Android/i.test(navigator.userAgent)){
+      pwaInstallBtn.style.display='none';
+      pwaBanner.querySelector('.pwa-txt span').textContent='Toque em ⋮ (menu do navegador) e depois em "Instalar aplicativo"';
+      showBanner();
+    }
+  },3500);
 });
 
 if('serviceWorker' in navigator){
